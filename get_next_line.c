@@ -6,11 +6,12 @@
 /*   By: efret <marvin@42.fr>                       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/27 16:18:29 by efret             #+#    #+#             */
-/*   Updated: 2024/01/09 17:30:35 by efret            ###   ########.fr       */
+/*   Updated: 2024/01/10 17:36:17 by efret            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+#include <stdio.h> // ----------------------------------------------------------DELETE ME
 
 void	*ft_memcpy(void *dest, const void *src, size_t n)
 {
@@ -50,12 +51,9 @@ char	*ft_strjoin(t_file *file, size_t start)
 	res = malloc(sizeof(char) * (file->len + buf_data_len + 1));
 	if (!res)
 		return (NULL);
-	for (size_t i = 0; i < file->len + buf_data_len; i++)
-		res[i] = '0';
 	ft_memcpy(res, file->line, file->len);
 	ft_memcpy(&res[file->len], &file->buffer[start], buf_data_len);
 	res[file->len + file->pos - start] = 0;
-	free(file->line);
 	file->len += buf_data_len;
 	return (res);
 }
@@ -65,40 +63,26 @@ char	*get_next_line(int fd)
 	static t_file	*file;
 	size_t			start;
 
-	/*
-	 * If pos < buffersize; then continue from buffer.
-	 * no buffer left to loop over to check but still no newline,
-	 * then read from fd again and
-	 * loop over the new buffer data in search for the next newline.
-	 * always allocate the full length again and free the prev length.
-	 */
-	file = malloc(sizeof(t_file));
 	if (!file)
-		return (NULL);
-	if (fd < 0 || (file->fd && file->fd != fd))
-		return (NULL);
+		file = calloc(1, sizeof(t_file)); // ft_calloc here pls
 	file->fd = fd;
-	if (file->line)
-		free(file->line);
 	file->len = 0;
 	while (1)
 	{
 		if (!(file->pos) || file->pos == BUFFER_SIZE)
 		{
-			file->pos = 0;
+			while (file->pos > 0)
+				file->buffer[--file->pos] = 0;
 			if (read(file->fd, file->buffer, BUFFER_SIZE) <= 0)
-				break;
+				return (NULL);
 		}
 		start = file->pos;
 		while (file->buffer[file->pos])
-		{
-			file->pos++;
-			if (file->buffer[file->pos-1] == '\n')
-				break;
-		}
+			if (file->buffer[file->pos++] == '\n')
+				return (ft_strjoin(file, start));
+		if (start == file->pos)
+			return (NULL);
 		file->line = ft_strjoin(file, start);
-		if (file->line[file->len - 1] == '\n')
-			break;
 	}
 	return (file->line);
 }
@@ -107,15 +91,19 @@ char	*get_next_line(int fd)
 #include <fcntl.h>
 int	main(void)
 {
+	char	*line;
 	int	fd = open("test.txt", O_RDONLY);
 	if (fd < 0)
 	{
 		printf("Could not open file.\n");
 		return (0);
 	}
-	for (int i = 0; i < 5; i++)
-		printf("%s", get_next_line(fd));
-
+	for (int i = 0; i < 20; i++)
+	{
+		line = get_next_line(fd);
+		printf("%s", line);
+		free(line);
+	}
 	close(fd);
 	return (0);
 }

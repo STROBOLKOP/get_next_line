@@ -1,2 +1,8 @@
 here are some words.
+
+
+
 they are in the file "test.txt".
+Now they should all be here without problems.
+
+This marks the end of the file. Goodbye!
