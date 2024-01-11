@@ -6,7 +6,7 @@
 /*   By: efret <marvin@42.fr>                       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/27 16:18:29 by efret             #+#    #+#             */
-/*   Updated: 2024/01/10 17:36:17 by efret            ###   ########.fr       */
+/*   Updated: 2024/01/11 16:16:52 by efret            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,18 @@ size_t	ft_strlen(const char *s)
 	return (len);
 }
 
+size_t	ft_strlen_newline(const char *s)
+{
+	size_t	len;
+
+	len = 0;
+	while (s[len])
+		if (s[len++] == '\n')
+			break;
+	return (len);
+}
+
+/*
 char	*ft_strjoin(t_file *file, size_t start)
 {
 	char			*res;
@@ -52,7 +64,7 @@ char	*ft_strjoin(t_file *file, size_t start)
 	if (!res)
 		return (NULL);
 	ft_memcpy(res, file->line, file->len);
-	ft_memcpy(&res[file->len], &file->buffer[start], buf_data_len);
+	ft_memcpy(&res[file->len], &file->buf[start], buf_data_len);
 	res[file->len + file->pos - start] = 0;
 	file->len += buf_data_len;
 	return (res);
@@ -72,19 +84,68 @@ char	*get_next_line(int fd)
 		if (!(file->pos) || file->pos == BUFFER_SIZE)
 		{
 			while (file->pos > 0)
-				file->buffer[--file->pos] = 0;
-			if (read(file->fd, file->buffer, BUFFER_SIZE) <= 0)
+				file->buf[--file->pos] = 0;
+			if (read(file->fd, file->buf, BUFFER_SIZE) <= 0)
 				return (NULL);
 		}
 		start = file->pos;
-		while (file->buffer[file->pos])
-			if (file->buffer[file->pos++] == '\n')
+		while (file->buf[file->pos])
+			if (file->buf[file->pos++] == '\n')
 				return (ft_strjoin(file, start));
 		if (start == file->pos)
 			return (NULL);
 		file->line = ft_strjoin(file, start);
 	}
 	return (file->line);
+}
+*/
+
+char	*ft_strjoin(char *line, char *buf, size_t len)
+{
+	char	*res;
+	size_t	line_len;
+
+	line_len = 0;
+	if (line)
+		line_len = ft_strlen(line);
+	res = malloc(sizeof(char) * (line_len + len + 1));
+	if (!res)
+		return (NULL);
+	ft_memcpy(res, line, line_len);
+	ft_memcpy(&res[line_len], buf, len);
+	res[line_len + len] = 0;
+	if (line)
+		free(line);
+	return (res);
+}
+
+char	*get_next_line(int fd)
+{
+	static char	*buf = "";
+	char		*line;
+	size_t		buf_cpy_len;
+	size_t		line_len;
+
+	line_len = 0;
+	line = calloc(1, 1);
+	while (1)
+	{
+		buf_cpy_len = ft_strlen_newline(buf);
+		if (!buf_cpy_len)
+		{
+			buf = calloc(BUFFER_SIZE, sizeof(char)); // ft_calloc
+			if (read(fd, buf, BUFFER_SIZE) <= 0)
+				return (free(buf), NULL);
+			buf_cpy_len = ft_strlen_newline(buf);
+		}
+		line = ft_strjoin(line, buf, buf_cpy_len);
+		buf = ft_strjoin(NULL, &buf[buf_cpy_len], ft_strlen(buf) - buf_cpy_len);
+		line_len += buf_cpy_len;
+		buf_cpy_len = 0;
+		if (line[line_len - 1] == '\n')
+			break;
+	}
+	return (line);
 }
 
 #include <stdio.h>
@@ -98,11 +159,12 @@ int	main(void)
 		printf("Could not open file.\n");
 		return (0);
 	}
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		line = get_next_line(fd);
 		printf("%s", line);
-		free(line);
+		if (line)
+			free(line);
 	}
 	close(fd);
 	return (0);
