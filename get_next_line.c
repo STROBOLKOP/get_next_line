@@ -6,7 +6,7 @@
 /*   By: efret <marvin@42.fr>                       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/27 16:18:29 by efret             #+#    #+#             */
-/*   Updated: 2024/01/11 16:16:52 by efret            ###   ########.fr       */
+/*   Updated: 2024/01/11 17:40:02 by efret            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,21 +125,26 @@ char	*get_next_line(int fd)
 	char		*line;
 	size_t		buf_cpy_len;
 	size_t		line_len;
+	char		*tmp;
 
 	line_len = 0;
-	line = calloc(1, 1);
+	buf_cpy_len = 0;
+	line = NULL;
 	while (1)
 	{
-		buf_cpy_len = ft_strlen_newline(buf);
+		if (buf)
+			buf_cpy_len = ft_strlen_newline(buf); // Look for a different logic, right now I try to get the length of a freed object when the file is done.
 		if (!buf_cpy_len)
 		{
-			buf = calloc(BUFFER_SIZE, sizeof(char)); // ft_calloc
+			buf = calloc(BUFFER_SIZE + 1, sizeof(char)); // ft_calloc
 			if (read(fd, buf, BUFFER_SIZE) <= 0)
 				return (free(buf), NULL);
 			buf_cpy_len = ft_strlen_newline(buf);
 		}
 		line = ft_strjoin(line, buf, buf_cpy_len);
-		buf = ft_strjoin(NULL, &buf[buf_cpy_len], ft_strlen(buf) - buf_cpy_len);
+		tmp = buf;
+		buf = ft_strjoin(NULL, &buf[buf_cpy_len], ft_strlen(buf) - buf_cpy_len); // Something here still leaks, the res malloc'd in strjoin. Maybe just another function, ye?
+		free(tmp);
 		line_len += buf_cpy_len;
 		buf_cpy_len = 0;
 		if (line[line_len - 1] == '\n')
